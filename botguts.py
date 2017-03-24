@@ -6,7 +6,7 @@ import os
 from slackclient import SlackClient
 import time
 
-BOT_NAME = 'asdbot'
+BOT_NAME = 'acebot_not'
 BOT_ID = os.environ.get("BOT_ID")
 
 AT_BOT = "<@" + BOT_ID + ">"

@@ -3,7 +3,7 @@ from botguts import Slack_Bot  # , Bot_Command
 from importlib import import_module
 import sys
 
-asdbot = Slack_Bot()
+asdbot_not = Slack_Bot()
 
 # help_command = Bot_Command(
 #     call='help',
@@ -24,7 +24,7 @@ with open('module_list.txt', 'r') as f:
         mod = line.strip()
         mod = mod.replace(r'/', '.')
         import_module(mod)
-        asdbot.register(sys.modules[mod])
+        asdbot_not.register(sys.modules[mod])
 
 if __name__ == '__main__':
-    asdbot.connect_and_run()
+    asdbot_not.connect_and_run()
