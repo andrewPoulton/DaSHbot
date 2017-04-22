@@ -59,13 +59,15 @@ class Slack_Bot(object):
 
     def handle_command(self, command, channel, ts):
         response = []
+        if command.startswith('summar'):
+            command += 'chan=' + channel
         for comm in self.bot_commands:
             if comm.use_this(command):
                 answer = comm.response(command)
                 if isinstance(answer, str):
-                    response.append(comm.response(command))
+                    response.append(answer)
                 else:
-                    response.extend(comm.response(command))
+                    response.extend(answer)
 
         if not response:
             response = ["Sorry, I don't know that command."]

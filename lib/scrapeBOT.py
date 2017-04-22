@@ -6,7 +6,7 @@ import urllib.request
 import requests
 from dateutil import parser
 from datetime import datetime, date
-import moment
+import moment, calendar
 import csv
 from slackclient import SlackClient
 import botguts
@@ -29,7 +29,7 @@ def is_valid_date(string):
 	today = datetime.today()
 	try:
 		x = parser.parse(string).replace(tzinfo=None)
-		if 200 > (today - x).days > 0 :
+		if 1000 > (today - x).days > 0 :
 			return x.date()
 	except ValueError:
 		return False
@@ -61,63 +61,38 @@ def galink(link):
 		return link
 
 def runDMC(command):
-	command, filestring, chan, user = command.split(" ")
-	print(command, filestring, chan, user)
+	filestring, chan = command.split("chan=")
+	d = find_date(filestring)
+	since = None
+	if d:
+		since = calendar.timegm(d.timetuple())
+	print(since)
+	#command, filestring, chan, user = command.split(" ")
+	#print(command, filestring, chan, user)
 	slack_client=SlackClient(os.environ.get('ANDY_TOKEN'))
-	if filestring == "pocket":
-		c_key = os.environ.get("POCKET_TOKEN")
-		cc_toke = os.environ.get("COXON_POCKET")
-		print(c_key, cc_toke)
-		#if is_date(since):
-		#	since = parser.parse(since).timestamp()
-		p = Pocket(consumer_key = c_key, access_token = cc_toke)
-		try:
-			poks = p.retrieve(sort = 'newest', detailType = 'complete') #tag, since parameters too
-		except PocketException as e:
-			print(e.message)
-			return "Uh-oh.  I've had a problem trying to look in your Pocket."
-		ad = []
-		for key in poks['list']:
-			ad.append(key)
-		links = [poks['list'][a]['resolved_url'] for a in ad]
-		tt = [poks['list'][a]['resolved_title'] for a in ad]
-	else:
-		file = slack_client.api_call('files.list', channel = chan)
-		#print(file)
-		if file['ok']:
-			#print(file['files'][2])
-			for filez in file['files']:
-				print(filez['name'])
-				if filestring in filez['name'].lower():
-					filesOpen = filez['name']
-					print(filesOpen)
-					fileURL = slack_client.api_call('files.sharedPublicURL', file = filez['id'])
-					print(fileURL)
-					if not fileURL['ok']:
-						fileURL = filez['permalink_public']
-					else:
-						fileURL = fileURL['file']['permalink_public']
-					
-					print(fileURL)
-					#fileURL = filez['url_private_download']
-					print(fileURL, filesOpen)
-					linksHTML = BeautifulSoup(requests.get(fileURL).text, 'html.parser')
-					break
+	
+	c_key = os.environ.get("POCKET_TOKEN")
+	cc_toke = os.environ.get("COXON_POCKET")
+	print(c_key, cc_toke)
+	#if is_date(since):
+	#	since = parser.parse(since).timestamp()
+	p = Pocket(consumer_key = c_key, access_token = cc_toke)
+	try:
+		poks = p.retrieve(sort = 'newest', detailType = 'complete', since = since) #tag, since parameters too
+	except PocketException as e:
+		print(e.message)
+		return "Uh-oh.  I've had a problem trying to look in your Pocket."
+	ad = []
+	print(poks)
+	for key in poks['list']:
+		ad.append(key)
 
-		else:
-			return "I'm sorry, I can't see which file you want me to summarize."		#slack_client.api_call('files.revokePublicURL', filez['id'])
-
-		SMMRY_API = os.environ.get('SMMRY_API')
-		links = [r.text for r in linksHTML.findAll("pre") if len(r.text)>0]
-
-	#links = open(fileSOpen).read().split('\n\n')
-
-	#galinks = [re.findall(r'&url=(.*?)&ct=', link)[0] for link in links if is_galink(link)]
-	#galinks =[lin.split('&ct=')[0] for lin in [('url=' + lins + '&ct=url=').split('url=')[1] for lins in galinks]]
-	#links = galinks.extend([link for link in links if not is_galink(link)])
-	links = [galink(link) for link in links]
-	print(links)
-	#return
+	links = [poks['list'][a]['resolved_url'] for a in ad if 'resolved_url' in poks['list'][a]]
+	tt = [poks['list'][a]['resolved_title'] for a in ad if 'resolved_title' in poks['list'][a]]
+	
+	
+	SMMRY_API = os.environ.get('SMMRY_API')
+		
 	lRow = []
 
 	for link in links:
@@ -125,7 +100,7 @@ def runDMC(command):
 		lDict['Link(s)'] = link
 		if filestring == 'pocket':
 			lDict['Title or Brief Description'] = tt[len(lRow)]
-		e = requests.get(link)
+		e = requests.get(link) #error handle here, pdf check?
 		e = BeautifulSoup(e.text,'html.parser')
 		for thing in e(["script","style","head","a"]):
 			thing.extract()
